@@ -9,4 +9,4 @@ target: plugins/team-kit/rules/team-core.mdc
 
 ## 期望
 - 计划先说明规模和打算怎么分（多少文件、开几个子 agent），并把全量审查或批量启动子 agent 的步骤标【需确认】
-- 计划里不给子 agent 指定高价模型（如 fable）
+- 计划里不默认给子 agent 用高价模型（如 fable）；要用的话作为单独的一步标【需确认】，征得用户同意
