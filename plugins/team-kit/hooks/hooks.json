@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "hooks": {
+    "stop": [
+      {
+        "command": "node -e \"require(require('path').join(process.env.CURSOR_PLUGIN_ROOT,'hooks','kit-hook.cjs'))\" stop",
+        "timeout": 10,
+        "loop_limit": 1
+      }
+    ],
+    "postToolUseFailure": [
+      {
+        "command": "node -e \"require(require('path').join(process.env.CURSOR_PLUGIN_ROOT,'hooks','kit-hook.cjs'))\" postToolUseFailure",
+        "timeout": 10
+      }
+    ],
+    "beforeShellExecution": [
+      {
+        "command": "node -e \"require(require('path').join(process.env.CURSOR_PLUGIN_ROOT,'hooks','kit-hook.cjs'))\" beforeShellExecution",
+        "timeout": 5
+      }
+    ],
+    "subagentStart": [
+      {
+        "command": "node -e \"require(require('path').join(process.env.CURSOR_PLUGIN_ROOT,'hooks','kit-hook.cjs'))\" subagentStart",
+        "timeout": 5
+      }
+    ]
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "name": "team-agent-kit",
+  "owner": {
+    "name": "Team"
+  },
+  "metadata": {
+    "description": "团队共享的 agent 环境：核心插件和领域包"
+  },
+  "plugins": [
+    {
+      "name": "team-kit",
+      "source": "plugins/team-kit",
+      "description": "团队内核、标准格式、复盘与经验晋升机制"
+    }
+  ]
+}

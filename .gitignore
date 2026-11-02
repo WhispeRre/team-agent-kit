@@ -1,0 +1,11 @@
+.DS_Store
+node_modules/
+*.tmp
+
+# scripts/pack.cjs 生成的安装文件
+dist/
+
+# 成员提交的原始材料不进 git
+intake/inbox/*
+!intake/inbox/.gitkeep
+intake/processed/

@@ -1,0 +1,12 @@
+{
+  "name": "team-kit",
+  "version": "0.3.0",
+  "description": "团队层：内核（边界和红线）、验收标准、花费守卫、经验卡的复盘与晋升。工作流用 AIhero 的 skills。",
+  "author": {
+    "name": "Team"
+  },
+  "keywords": ["team", "workflow", "lessons", "self-improvement"],
+  "rules": "./rules/",
+  "skills": "./skills/",
+  "hooks": "./hooks/hooks.json"
+}

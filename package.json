@@ -1,0 +1,14 @@
+{
+  "name": "team-agent-kit",
+  "private": true,
+  "description": "团队共享、随任务自我改进的 agent 环境",
+  "type": "commonjs",
+  "scripts": {
+    "check": "node scripts/kit-check.cjs",
+    "pack": "node scripts/pack.cjs",
+    "install:local": "node scripts/install.cjs"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
