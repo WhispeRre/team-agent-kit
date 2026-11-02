@@ -22,7 +22,7 @@ flowchart LR
 
 需要 Node 18 以上（终端里输入 `node -v` 查看）。
 
-- **安装文件（默认）**：负责人会发给你一个 `team-kit-<版本>.cjs`。在终端（Windows 用 PowerShell）运行 `node team-kit-<版本>.cjs`，然后重启 Cursor。收到新版本再运行一次就会覆盖升级；卸载时加 `--uninstall`。
+- **安装文件（默认）**：在仓库的 [Releases 页](https://github.com/WhispeRre/team-agent-kit/releases/latest)下载最新的 `team-kit-<版本>.cjs`（需要仓库的访问权限；没有的话找负责人直接要文件）。在终端（Windows 用 PowerShell）运行 `node team-kit-<版本>.cjs`，然后重启 Cursor。有新版本时再下载、运行一次就会覆盖升级；卸载时加 `--uninstall`。
 - **团队工作流**：另外装 AIhero 的 skills：`npx skills@latest add mattpocock/skills -g -a cursor -s '*' -y`。以后等负责人通知再运行 `npx skills update -g -y` 更新，让大家用同一个版本。
 - **维护者**：在本仓库运行 `node scripts/install.cjs`，Cursor 直接从仓库加载，改完重载窗口就生效。
 - **团队市场**（以后用上 Cursor Teams / Enterprise 时）：把本仓库导入为团队市场，`team-kit` 设为 Required，更新自动下发。
@@ -45,7 +45,7 @@ flowchart LR
 
 ## 维护者
 
-- 发版：`node scripts/pack.cjs` 生成 `dist/team-kit-<版本>.cjs`，连同它打印的说明一起发给同学。发版前先用 `/eval` 跑回归用例。
+- 发版：先用 `/eval` 跑回归用例，再在推送过的 main 上运行 `node scripts/pack.cjs --release`，安装文件会发布到 Releases 页。给没有仓库权限的同学，用 `node scripts/pack.cjs` 生成文件，连同它打印的说明直接发。
 - 收经验：同学发回的导出文件放进 `intake/inbox/<提交人>/`，运行 `node scripts/import-lessons.cjs <文件>`。
 - 每周整理：`/curate`。
 - 收集材料：发[需求问卷](intake/SURVEY.md)，材料配上[投稿卡](intake/TEMPLATE.md)放进 `intake/inbox/`，然后运行 `/intake`。

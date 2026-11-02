@@ -21,6 +21,7 @@
 - 检查仓库：`node scripts/kit-check.cjs`
 - 检查某个项目的项目层：`node scripts/kit-check.cjs --project <目录>`
 - 打包安装文件：`node scripts/pack.cjs`（输出在 dist/）
+- 发布到 GitHub Releases：`node scripts/pack.cjs --release`（只从推送过的 main 发布；加 `--dry-run` 只看不发）
 - 导入同学发回的经验：`node scripts/import-lessons.cjs <文件>`
 - 维护者本机加载：`node scripts/install.cjs --dry-run` 先看会改什么（详见 docs/operations.md）
 

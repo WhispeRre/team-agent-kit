@@ -4,15 +4,16 @@
 
 ## 1. 仓库
 
-本目录建议用 git 管理（`git init`），方便 review 和回滚。推到 GitHub 私有仓库后可以用上 CI 和每周 Automation，以后也能直接导入为团队市场；不推也不影响用安装文件分发。
+仓库在 GitHub：[WhispeRre/team-agent-kit](https://github.com/WhispeRre/team-agent-kit)（私有）。同学要从 Releases 页下载安装文件，或者用 `/promote` 提 PR，都得先被加为协作者。个人账号下的私有仓库，协作者都有推送权限；要按人设只读，得把仓库转到组织。仓库在 GitHub 上还能用 CI 和每周 Automation，以后也能直接导入为团队市场。
 
 ## 2. 分发
 
 ### 安装文件（默认）
 
 1. 运行 `node scripts/pack.cjs`。它先跑 kit-check，通过后把 `marketplace.json` 里的插件打包成 `dist/team-kit-<版本>.cjs`，并打印一段可以直接发给同学的安装说明。只给某些同学加发领域包时，在命令后面写插件名，比如 `node scripts/pack.cjs team-kit 3d-gen`。
-2. 把文件和说明发给同学。他们运行 `node <文件>`，插件装进 `~/.cursor/plugins/local/<插件名>/`，重启 Cursor 生效。macOS 和 Windows 用同一个文件。说明里带了 AIhero skills 的安装命令，安装文件运行完也会检查这台电脑装没装（见第 12 节）。
-3. 发新版本：改完版本号重新打包、再发；同学再运行一次就会覆盖升级。安装文件只覆盖同名插件的目录，不碰别的东西；`--uninstall` 卸载，`--dry-run` 只打印将要做的改动。
+2. 发布：改动合并到 main 并推送后，运行 `node scripts/pack.cjs --release`。它打包后把安装文件发布到 GitHub 的 Releases 页，tag 是 `<插件名>-<版本>`，发布说明里有安装步骤和 CHANGELOG 里这一版的内容。需要装 gh 并登录；有未提交的改动、当前提交和远端主分支不一致，或者这个版本发布过时，它会停下。加 `--dry-run` 只打印将要执行的命令和发布说明。没有仓库权限的同学，照旧把文件和说明直接发给他们。
+3. 同学运行 `node <文件>`，插件装进 `~/.cursor/plugins/local/<插件名>/`，重启 Cursor 生效。macOS 和 Windows 用同一个文件。说明里带了 AIhero skills 的安装命令，安装文件运行完也会检查这台电脑装没装（见第 12 节）。
+4. 发新版本：改完版本号、合并到 main 后再运行一次 `--release`；同学下载新版本再运行一次就会覆盖升级。安装文件只覆盖同名插件的目录，不碰别的东西；安装文件加 `--uninstall` 卸载，加 `--dry-run` 只打印将要做的改动。
 
 `dist/` 不进 git。
 
@@ -65,13 +66,13 @@ Teams 套餐只能导入一个团队市场，所以领域包也放在这个仓�
 ## 6. 版本
 
 - 只合并经验或补证据：patch；新增 skill、改 hook、policy.json 或团队基线：minor；改内核：major（1.0 之前升 minor）。
-- 改版本号时同步改 `plugins/<名字>/.cursor-plugin/plugin.json` 和 `CHANGELOG.md`（标题格式 `## <插件名> <版本>`），然后重新打包发出去。
+- 改版本号时同步改 `plugins/<名字>/.cursor-plugin/plugin.json` 和 `CHANGELOG.md`（标题格式 `## <插件名> <版本>`，发布说明会从这里取这一版的内容），然后用 `node scripts/pack.cjs --release` 发布。
 - 改了团队基线，同学装上新版后，每个项目第一次开新对话时 agent 会提醒重跑 `/kickoff`；check-project 也会提示基线过期。
 
 ## 7. 角色和节奏
 
 - 负责人：打包发版、导入同学发回的经验、审整理结果、批准内核改动、处理冲突、运行 `/intake`。
-- 每周：`/curate`；有合并就打包发新版本。
+- 每周：`/curate`；有合并就用 `node scripts/pack.cjs --release` 发新版本。
 - 每月：请同学各自运行 `node ~/.cursor/plugins/local/team-kit/scripts/stats.cjs`，汇总看纠正次数、轮数、子 agent 个数和高价会话的趋势；把 90 天没复核的经验过一遍。
 
 ## 8. 加领域包
@@ -89,7 +90,7 @@ Teams 套餐只能导入一个团队市场，所以领域包也放在这个仓�
 `plugins/team-kit/policy.json` 的 `expensiveModels` 是高价模型清单，每条是不区分大小写的正则，匹配子 agent 的模型名，比如 `"fable"` 能匹配 `claude-fable-5-1-thinking-high`。
 
 - 清单里的模型，子 agent 启动时会被拦下，用户看到原因和放开的命令。同学确实需要时运行 `node ~/.cursor/plugins/local/team-kit/scripts/allow-expensive.cjs 2` 临时放开 2 小时（`status` 查看、`off` 马上恢复）。放开期间照样记进统计。
-- 改清单要升 minor 版本、重新打包。清单为空就等于关掉花费守卫。
+- 改清单要升 minor 版本、重新发布。清单为空就等于关掉花费守卫。
 - 主对话用什么模型由同学自己选，kit 不拦，只在统计里标出用了高价模型的会话。
 - hook 拿不到 token 用量，月度汇总时看子 agent 个数和高价会话数，个别人明显偏高时一起看是哪个 skill 或习惯导致的，再写成经验卡。
 

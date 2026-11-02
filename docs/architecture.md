@@ -83,7 +83,7 @@ flowchart TB
 | 晋升 | 团队级卡脱敏、泛化后提交：有 kit 仓库就开 PR；没有就导出一个文件发给负责人，用 `scripts/import-lessons.cjs` 导入 | `/promote` | `lessons/incoming/` |
 | 整理 | 补证据、过门禁、增量合并进 skill、写回归用例、归档 | `/curate`，建议配成每周的 Cursor Automation | `plugins/team-kit/skills/`、`plugins/team-kit/lessons/`、`evals/cases/` |
 | 验证 | 检查结构、格式、门禁、预算、密钥；回放回归用例 | `scripts/kit-check.cjs`（CI 上也跑）、`/eval` | `evals/results/` |
-| 分发 | 打包成一个安装文件发给大家，运行一次即安装或升级；以后也可以导入团队市场自动下发 | `scripts/pack.cjs` | 每个人的 `~/.cursor/plugins/local/` |
+| 分发 | 打包成一个安装文件，发布到仓库的 GitHub Releases 页，大家下载后运行一次即安装或升级；以后也可以导入团队市场自动下发 | `scripts/pack.cjs` | 每个人的 `~/.cursor/plugins/local/` |
 
 ### 收料
 
