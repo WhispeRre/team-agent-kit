@@ -1,5 +1,11 @@
 # Changelog
 
+## team-kit 0.4.0
+
+2026-11-02
+
+- 开工提醒（sessionStart hook）：新对话开始时，项目还没有项目层、团队基线过期，或者这台电脑没装 AIhero，agent 会在第一条回复末尾提醒一次（运行 /kickoff，或给出 AIhero 的安装命令）。每个项目只提醒一次，团队基线变了再提醒一次，记录在 `~/.team-kit/kickoff-reminders.json`；后台 agent 不提醒。这样"每个新项目都用同样的规则和工作流"不再只靠人记得跑 /kickoff。
+
 ## team-kit 0.3.0
 
 2026-10-30

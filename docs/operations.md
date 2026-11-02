@@ -66,7 +66,7 @@ Teams 套餐只能导入一个团队市场，所以领域包也放在这个仓�
 
 - 只合并经验或补证据：patch；新增 skill、改 hook、policy.json 或团队基线：minor；改内核：major（1.0 之前升 minor）。
 - 改版本号时同步改 `plugins/<名字>/.cursor-plugin/plugin.json` 和 `CHANGELOG.md`（标题格式 `## <插件名> <版本>`），然后重新打包发出去。
-- 改了团队基线，发版时提醒同学在各自项目里重跑 `/kickoff`；check-project 也会提示基线过期。
+- 改了团队基线，同学装上新版后，每个项目第一次开新对话时 agent 会提醒重跑 `/kickoff`；check-project 也会提示基线过期。
 
 ## 7. 角色和节奏
 

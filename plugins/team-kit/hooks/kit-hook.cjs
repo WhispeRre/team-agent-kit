@@ -2,14 +2,18 @@
 
 // 团队 kit 的 hook 入口，事件名由 hooks.json 作为命令行参数传入。
 // 任何异常都放行：kit 的 bug 不能卡住正常工作。
+const crypto = require('crypto');
+const fs = require('fs');
 const path = require('path');
 const home = require('../lib/home.cjs');
 const { redact } = require('../lib/secrets.cjs');
 const { loadCards, isActive, matchesPlatform, matchesModel, triggerRegex } = require('../lib/cards.cjs');
 const { loadPolicy, expensiveMatch, expensiveAllowedUntil } = require('../lib/policy.cjs');
+const { TEMPLATE, baselineOf, baselineStatus } = require('../lib/standards.cjs');
+const { AIHERO_INSTALL, findAihero } = require('../lib/aihero.cjs');
 
 const PLUGIN_ROOT = path.resolve(__dirname, '..');
-const EVENTS = ['stop', 'postToolUseFailure', 'beforeShellExecution', 'subagentStart'];
+const EVENTS = ['sessionStart', 'stop', 'postToolUseFailure', 'beforeShellExecution', 'subagentStart'];
 // 这些事件的输出不是合法 JSON 时 Cursor 会拦下操作，所以出错也要输出放行
 const PERMISSION_EVENTS = ['beforeShellExecution', 'subagentStart'];
 const ALLOW = { permission: 'allow' };
@@ -19,6 +23,12 @@ const TRANSCRIPT_TAIL_BYTES = 4 * 1024 * 1024;
 const NUDGE_MIN_FAILURES = 3;
 const NUDGE_MIN_CORRECTIONS = 2;
 const MAX_REMINDERS = 3;
+const KICKOFF_HINTS = {
+  'missing-file': '这个项目还没有验收标准 CODING_STANDARDS.md：建议运行 /kickoff 补上。',
+  'missing-block': '这个项目的 CODING_STANDARDS.md 里还没有团队基线：建议运行 /kickoff 补上。',
+  outdated: '团队基线更新了，这个项目 CODING_STANDARDS.md 里的还是旧版：建议运行 /kickoff 刷新。',
+};
+const NO_PROJECT_LAYER = '这个项目还没有团队的项目层：建议运行 /kickoff，建立 AGENTS.md 和验收标准 CODING_STANDARDS.md。';
 
 function readStdin() {
   return new Promise((resolve) => {
@@ -102,6 +112,34 @@ function countCorrections(transcriptPath, pattern) {
     if (re.test(userText(entry))) count += 1;
   }
   return count;
+}
+
+// 每个项目只提醒一次，团队基线变了再提醒一次。后台 agent 身边没人，不占用这次提醒。
+function onSessionStart(input) {
+  const dir = roots(input)[0];
+  if (!dir || input.is_background_agent) return {};
+  const status = baselineStatus(dir);
+  const aihero = Boolean(findAihero(dir));
+  if (status === 'ok' && aihero) return {};
+
+  const baseline = crypto.createHash('sha1').update(baselineOf(fs.readFileSync(TEMPLATE, 'utf8')) || '').digest('hex').slice(0, 12);
+  const key = process.platform === 'win32' ? path.resolve(dir).toLowerCase() : path.resolve(dir);
+  const reminded = home.readJson('kickoff-reminders.json', {});
+  if (reminded[key] && reminded[key].baseline === baseline) return {};
+  reminded[key] = { baseline, ts: new Date().toISOString() };
+  const recent = Object.entries(reminded)
+    .sort((a, b) => String(a[1] && a[1].ts).localeCompare(String(b[1] && b[1].ts)))
+    .slice(-500);
+  home.writeJson('kickoff-reminders.json', Object.fromEntries(recent));
+
+  const lines = [];
+  const hasAgents = ['AGENTS.md', 'CLAUDE.md'].some((f) => fs.existsSync(path.join(dir, f)));
+  if (status === 'missing-file' && !hasAgents) lines.push(NO_PROJECT_LAYER);
+  else if (status !== 'ok') lines.push(KICKOFF_HINTS[status]);
+  if (!aihero) lines.push(`这台电脑还没装团队工作流（AIhero 的 skills）：建议在终端运行 ${AIHERO_INSTALL}`);
+  return {
+    additional_context: `团队 kit 的一次性提示：先照常处理用户的请求，在你的第一条回复末尾用一两句话转告用户：\n${lines.map((l) => `- ${l}`).join('\n')}`,
+  };
 }
 
 function onStop(input, config) {
@@ -197,7 +235,8 @@ function onSubagentStart(input, config) {
 }
 
 const HANDLERS = {
-  stop: onStop, postToolUseFailure: onFailure, beforeShellExecution: onBeforeShell, subagentStart: onSubagentStart,
+  sessionStart: onSessionStart, stop: onStop, postToolUseFailure: onFailure, beforeShellExecution: onBeforeShell,
+  subagentStart: onSubagentStart,
 };
 
 async function main() {
