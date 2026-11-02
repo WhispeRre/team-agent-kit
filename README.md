@@ -32,7 +32,7 @@ flowchart LR
 
 ### 日常
 
-1. 新项目或接手旧项目：`/kickoff`，生成 `AGENTS.md`、`CODING_STANDARDS.md`（验收标准）、`HANDOFF.md` 和 `lessons/`；然后运行 `/setup-matt-pocock-skills`，配置 AIhero 用到的 issue 和领域文档。
+1. 新项目或接手旧项目：`/kickoff`，生成 `AGENTS.md`、`CODING_STANDARDS.md`（验收标准）、`HANDOFF.md` 和 `lessons/`；然后运行 `/setup-matt-pocock-skills`，配置 AIhero 用到的 issue 和领域文档。忘了也没关系：还没跑过 `/kickoff` 的项目，第一次开对话时 agent 会提醒一次。
 2. 按 AIhero 的主流程做任务，不确定下一步用哪个 skill 时输入 `/ask-matt`。
 3. 做完一个任务，或者每周一次：`/learn`。
 4. 有团队级经验时：`/promote`。没有 kit 仓库的话，它会导出一个文件，发给负责人即可。

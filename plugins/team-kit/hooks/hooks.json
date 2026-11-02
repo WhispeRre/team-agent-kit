@@ -1,6 +1,12 @@
 {
   "version": 1,
   "hooks": {
+    "sessionStart": [
+      {
+        "command": "node -e \"require(require('path').join(process.env.CURSOR_PLUGIN_ROOT,'hooks','kit-hook.cjs'))\" sessionStart",
+        "timeout": 5
+      }
+    ],
     "stop": [
       {
         "command": "node -e \"require(require('path').join(process.env.CURSOR_PLUGIN_ROOT,'hooks','kit-hook.cjs'))\" stop",

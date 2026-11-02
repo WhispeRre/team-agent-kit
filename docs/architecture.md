@@ -29,6 +29,8 @@
 
 完成标准管一次任务，**验收标准**管一个项目：项目的 `CODING_STANDARDS.md` 写这个项目里"什么算好"，开头一节是全团队一样的团队基线，由 `/kickoff` 从 kit 同步。AIhero 的 `/code-review` 会把它当作 Standards 一线，另一线对照需求，两线各开一个子 agent，分开汇报。
 
+为了让每个项目都真的有这一层，`sessionStart` hook 在新对话开始时检查：项目还没有项目层、团队基线过期，或者这台电脑没装 AIhero，就让 agent 在第一条回复末尾提醒一次。每个项目只提醒一次，团队基线变了再提醒一次，记录在 `~/.team-kit/kickoff-reminders.json`；后台 agent 不提醒。
+
 ## 3. 两个学习环
 
 ```mermaid
@@ -154,6 +156,7 @@ Cursor 在 `subagentStart` 上只支持放行或拦下，不支持询问，所�
 | 标准格式 | `plugins/team-kit/skills/kit-formats/` |
 | 建项目层 | `plugins/team-kit/skills/kickoff/` |
 | 验收标准和团队基线 | `plugins/team-kit/skills/kickoff/templates/CODING_STANDARDS.md`；同步检查在 `plugins/team-kit/lib/standards.cjs` |
+| 开工提醒 | `plugins/team-kit/hooks/kit-hook.cjs` 的 `sessionStart` |
 | 复盘、分拣、结晶 | `plugins/team-kit/skills/learn/` |
 | 晋升 | `plugins/team-kit/skills/promote/`、`scripts/import-lessons.cjs` |
 | 记录、提醒、守卫 | `plugins/team-kit/hooks/` |
