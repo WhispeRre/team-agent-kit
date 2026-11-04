@@ -4,14 +4,14 @@
 
 ## 1. 仓库
 
-仓库在 GitHub：[WhispeRre/team-agent-kit](https://github.com/WhispeRre/team-agent-kit)（私有）。同学要从 Releases 页下载安装文件，或者用 `/promote` 提 PR，都得先被加为协作者。个人账号下的私有仓库，协作者都有推送权限；要按人设只读，得把仓库转到组织。仓库在 GitHub 上还能用 CI 和每周 Automation，以后也能直接导入为团队市场。
+仓库在 GitHub：[WhispeRre/team-agent-kit](https://github.com/WhispeRre/team-agent-kit)，公开，没有许可证（[ADR 0008](adr/0008-public-repo.md)）。谁都能从 Releases 页下载安装文件；想改东西的同学 fork 后提 PR，不用加协作者。协作者都能直接推 main，只加维护者。提交历史和 PR 描述任何人都看得到，密钥、客户信息和内部链接一律不进仓库。仓库在 GitHub 上还能用 CI 和每周 Automation，以后也能直接导入为团队市场。
 
 ## 2. 分发
 
 ### 安装文件（默认）
 
 1. 运行 `node scripts/pack.cjs`。它先跑 kit-check，通过后把 `marketplace.json` 里的插件打包成 `dist/team-kit-<版本>.cjs`，并打印一段可以直接发给同学的安装说明。只给某些同学加发领域包时，在命令后面写插件名，比如 `node scripts/pack.cjs team-kit 3d-gen`。
-2. 发布：改动合并到 main 并推送后，运行 `node scripts/pack.cjs --release`。它打包后把安装文件发布到 GitHub 的 Releases 页，tag 是 `<插件名>-<版本>`，发布说明里有安装步骤和 CHANGELOG 里这一版的内容。需要装 gh 并登录；有未提交的改动、当前提交和远端主分支不一致，或者这个版本发布过时，它会停下。加 `--dry-run` 只打印将要执行的命令和发布说明。没有仓库权限的同学，照旧把文件和说明直接发给他们。
+2. 发布：改动合并到 main 并推送后，运行 `node scripts/pack.cjs --release`。它打包后把安装文件发布到 GitHub 的 Releases 页，tag 是 `<插件名>-<版本>`，发布说明里有安装步骤和 CHANGELOG 里这一版的内容。需要装 gh 并登录；有未提交的改动、当前提交和远端主分支不一致，或者这个版本发布过时，它会停下。加 `--dry-run` 只打印将要执行的命令和发布说明。打不开 GitHub 的同学，照旧把文件和说明直接发给他们。
 3. 同学运行 `node <文件>`，插件装进 `~/.cursor/plugins/local/<插件名>/`，重启 Cursor 生效。macOS 和 Windows 用同一个文件。说明里带了 AIhero skills 的安装命令，安装文件运行完也会检查这台电脑装没装（见第 12 节）。
 4. 发新版本：改完版本号、合并到 main 后再运行一次 `--release`；同学下载新版本再运行一次就会覆盖升级。安装文件只覆盖同名插件的目录，不碰别的东西；安装文件加 `--uninstall` 卸载，加 `--dry-run` 只打印将要做的改动。
 

@@ -168,7 +168,7 @@ function main() {
     process.exitCode = 1;
     return;
   }
-  console.log(`\n已发布。同学在 ${repo}/releases/latest 下载；没有仓库权限的同学，把文件和下面这段话直接发给他们：\n`);
+  console.log(`\n已发布。同学在 ${repo}/releases/latest 下载；打不开 GitHub 的同学，把文件和下面这段话直接发给他们：\n`);
   console.log(message.join('\n'));
 }
 

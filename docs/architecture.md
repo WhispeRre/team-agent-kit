@@ -138,7 +138,7 @@ Cursor 在 `subagentStart` 上只支持放行或拦下，不支持询问，所�
 ## 7. 信任边界
 
 - 原始会话、会话索引和失败日志只留在各人电脑上。hook 写日志前会给疑似密钥打码。
-- 离开本机的只有经过 `/promote` 脱敏、由本人确认的经验卡（[ADR 0006](adr/0006-local-first-privacy.md)）。导入脚本会跳过疑似含密钥的卡。
+- 离开本机的只有经过 `/promote` 脱敏、由本人确认的经验卡（[ADR 0006](adr/0006-local-first-privacy.md)）。导入脚本会跳过疑似含密钥的卡。团队仓库是公开的，进了仓库就等于对外公开（[ADR 0008](adr/0008-public-repo.md)）。
 - 成员提交的原始材料放在 `intake/inbox/`，不进 git。
 - kit-check 会扫描整个仓库的疑似密钥，CI 上发现就拦下。
 - hook 出任何异常都放行，不会因为 kit 的 bug 卡住正常工作。
