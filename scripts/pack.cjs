@@ -5,13 +5,14 @@
 //   node scripts/pack.cjs team-kit 3d-gen  只打包指定的插件，比如给某些同学加发领域包
 //   node scripts/pack.cjs --release        打包后发布到 GitHub Releases（需要 gh；一次只发一个插件）
 //   加 --dry-run 只打印发布命令和发布说明，不真的发布
+// team-kit 的发布会多附一个固定名字的 team-kit.cjs，一行安装命令和新版本提醒都靠它。
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { spawnSync } = require('child_process');
 
 const ROOT = path.resolve(__dirname, '..');
-const { AIHERO_INSTALL } = require(path.join(ROOT, 'plugins', 'team-kit', 'lib', 'aihero.cjs'));
+const { REPO, installCommand } = require(path.join(ROOT, 'plugins', 'team-kit', 'lib', 'release.cjs'));
 const TEMPLATE = path.join(__dirname, 'installer-template.cjs');
 const DIST = path.join(ROOT, 'dist');
 const PLACEHOLDER = 'const PAYLOAD = null;';
@@ -43,7 +44,11 @@ function githubRepo() {
 // 发布的文件要对得上远端的某个提交，所以只从推送过的主分支发布。返回不满足的条件。
 function releaseBlockers(tag, head) {
   const blockers = [];
-  if (!githubRepo()) blockers.push('origin 不是 GitHub 仓库');
+  const repo = githubRepo();
+  if (!repo) blockers.push('origin 不是 GitHub 仓库');
+  else if (repo.toLowerCase() !== `https://github.com/${REPO}`.toLowerCase()) {
+    blockers.push(`plugins/team-kit/lib/release.cjs 里的仓库是 ${REPO}，和 origin 不一致：一行安装命令和新版本提醒会指错地方`);
+  }
   if (!run('gh', ['--version']).ok) blockers.push('没找到 gh：先安装 GitHub CLI，再运行 gh auth login');
   if (run('git', ['status', '--porcelain']).out) blockers.push('有未提交的改动：先提交');
   const base = run('git', ['symbolic-ref', '--short', 'refs/remotes/origin/HEAD']).out || 'origin/main';
@@ -64,14 +69,31 @@ function changelogSection(name, version) {
 function installMessage(fileName, releasesUrl) {
   return [
     `这是团队 agent kit 的安装文件 ${fileName}。`,
-    '1. 确认电脑装了 Node 18 以上：在终端里输入 node -v。没有的话去 nodejs.org 下载 LTS 版。',
-    `2. 在终端（Windows 用 PowerShell）里运行：node <文件所在的路径>/${fileName}`,
-    `3. 装团队工作流（AIhero 的 skills，装过的跳过）：${AIHERO_INSTALL}`,
-    '4. 重启 Cursor，然后在项目的对话里输入 /kickoff 开始。',
+    '1. 确认电脑装了 Node 18 以上：在终端里输入 node -v。没有的话，Windows 可以运行 winget install OpenJS.NodeJS.LTS，macOS 去 nodejs.org 下载安装包。',
+    `2. 在终端（Windows 用 PowerShell）里运行：node <文件所在的路径>/${fileName}。它会顺手装好团队工作流（AIhero 的 skills），这一步要联网。`,
+    '3. 重启 Cursor，然后在项目的对话里输入 /kickoff 开始。',
     releasesUrl
       ? `以后的新版本在 ${releasesUrl} 下载，再运行一次就会覆盖升级。卸载：node ${fileName} --uninstall`
       : `以后收到新版本，再运行一次就会覆盖升级。卸载：node ${fileName} --uninstall`,
   ];
+}
+
+function releaseNotes(name, version, fileName, message) {
+  const install =
+    name === 'team-kit'
+      ? [
+          '团队账号的成员不用装：团队市场会自动下发，重启 Cursor 或切回窗口就是新版。',
+          '',
+          '其他人需要 Node 18 以上，在终端运行一行命令；装过的再运行一次就是升级：',
+          '',
+          `- macOS：\`${installCommand('darwin')}\``,
+          `- Windows（PowerShell）：\`${installCommand('win32')}\``,
+          '',
+          `也可以下载下面的 \`${fileName}\`，在终端运行 \`node <文件路径>\`。`,
+        ]
+      : message;
+  const changes = changelogSection(name, version) || '（CHANGELOG.md 里没有这一版的说明）';
+  return ['## 安装', '', ...install, '', '## 这个版本改了什么', '', changes].join('\n');
 }
 
 function main() {
@@ -152,8 +174,15 @@ function main() {
   }
 
   const { name, version } = plugins[0];
-  const notes = ['## 安装', '', ...message, '', '## 这个版本改了什么', '', changelogSection(name, version) || '（CHANGELOG.md 里没有这一版的说明）'].join('\n');
-  const ghArgs = ['release', 'create', tag, path.relative(ROOT, target), '--target', head, '--title', `${name} ${version}`, '--latest'];
+  const notes = releaseNotes(name, version, fileName, message);
+  // releases/latest 要一直指向 team-kit：领域包的发布不标为最新。
+  const assets = [path.relative(ROOT, target)];
+  if (name === 'team-kit') {
+    fs.writeFileSync(path.join(DIST, 'team-kit.cjs'), output);
+    assets.push(path.join('dist', 'team-kit.cjs'));
+  }
+  const latest = name === 'team-kit' ? '--latest' : '--latest=false';
+  const ghArgs = ['release', 'create', tag, ...assets, '--target', head, '--title', `${name} ${version}`, latest];
   if (dryRun) {
     const shown = [...ghArgs, '--notes-file', '<发布说明>'].map((a) => (/[\s"']/.test(a) ? JSON.stringify(a) : a));
     console.log(`\n[dry-run] 将运行：gh ${shown.join(' ')}\n\n发布说明：\n${notes}`);
@@ -168,8 +197,17 @@ function main() {
     process.exitCode = 1;
     return;
   }
-  console.log(`\n已发布。同学在 ${repo}/releases/latest 下载；打不开 GitHub 的同学，把文件和下面这段话直接发给他们：\n`);
-  console.log(message.join('\n'));
+  console.log(
+    [
+      '',
+      '已发布。',
+      '- 团队市场跟的是 main，合并时成员就已经拿到了；没开 Auto Refresh 的话，去 Cursor Dashboard 的团队市场点一次 Refresh。',
+      '- 用安装文件装的人，之后开对话时会收到新版本提醒（每天最多查一次）。',
+      '- 打不开 GitHub 的同学，把文件和下面这段话直接发给他们：',
+      '',
+      ...message,
+    ].join('\n'),
+  );
 }
 
 try {

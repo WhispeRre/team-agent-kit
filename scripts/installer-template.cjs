@@ -1,9 +1,10 @@
 'use strict';
 
 // 团队 kit 安装文件。由 scripts/pack.cjs 生成，发给同学后运行：
-//   node <本文件>              安装或升级到 ~/.cursor/plugins/local/<插件名>/
+//   node <本文件>              安装或升级到 ~/.cursor/plugins/local/<插件名>/，没装 AIhero 的 skills 时顺手装上
 //   node <本文件> --uninstall  卸载
-//   加 --dry-run 只打印将要做的改动
+//   加 --no-aihero 不装 AIhero；加 --dry-run 只打印将要做的改动
+const { spawnSync } = require('child_process');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
@@ -11,12 +12,38 @@ const path = require('path');
 const PAYLOAD = null;
 
 const LOCAL_PLUGINS = path.join(os.homedir(), '.cursor', 'plugins', 'local');
+const PLUGIN_CACHE = path.join(os.homedir(), '.cursor', 'plugins', 'cache');
 const HOOKS_FILE = path.join(os.homedir(), '.cursor', 'hooks.json');
 // 安装文件是单文件，不能引用插件里的 lib/aihero.cjs，两处要一起改。
 const AIHERO_INSTALL = "npx skills@latest add mattpocock/skills -g -a cursor -s '*' -y";
+const AIHERO_ARGS = ['skills@latest', 'add', 'mattpocock/skills', '-g', '-a', 'cursor', '-s', '*', '-y'];
 
 function hasAihero() {
   return ['.agents', '.cursor'].some((d) => fs.existsSync(path.join(os.homedir(), d, 'skills', 'ask-matt', 'SKILL.md')));
+}
+
+// Windows 上 npx 是 .cmd，要经过 shell 才能运行。
+function npx(args) {
+  return process.platform === 'win32'
+    ? spawnSync(['npx', ...args].join(' '), { stdio: 'inherit', shell: true })
+    : spawnSync('npx', args, { stdio: 'inherit' });
+}
+
+// Windows 上建符号链接常常没有权限，失败了就改用 --copy 再试一次。
+function installAihero() {
+  console.log(`\n团队工作流用 AIhero 的 skills，这台电脑还没装，现在安装（要联网，一般一两分钟）：${AIHERO_INSTALL}`);
+  let result = npx(AIHERO_ARGS);
+  if (result.status !== 0 && process.platform === 'win32') result = npx([...AIHERO_ARGS, '--copy']);
+  return result.status === 0 && hasAihero();
+}
+
+// Cursor 会优先用团队市场装的同名插件，本地这份不生效。
+function fromMarketplace(name) {
+  try {
+    return fs.readdirSync(PLUGIN_CACHE).some((m) => fs.existsSync(path.join(PLUGIN_CACHE, m, name)));
+  } catch {
+    return false;
+  }
 }
 
 function readManifest(dir) {
@@ -94,7 +121,7 @@ function main() {
   }
   const args = process.argv.slice(2);
   if (args.includes('--help') || args.includes('-h')) {
-    console.log('用法：node <本文件> [--uninstall] [--dry-run]');
+    console.log('用法：node <本文件> [--uninstall] [--no-aihero] [--dry-run]');
     return;
   }
   const dryRun = args.includes('--dry-run');
@@ -110,19 +137,24 @@ function main() {
 
   PAYLOAD.plugins.forEach((p) => install(p, dryRun));
   warnIfLoadedFromRepo();
-  if (dryRun) return;
+  const shadowed = PAYLOAD.plugins.filter((p) => fromMarketplace(p.name)).map((p) => p.name);
+  if (shadowed.length) {
+    console.log(`\n注意：这台电脑已经通过团队市场装了 ${shadowed.join('、')}，Cursor 会优先用团队市场的那份，本地这份不生效。团队成员不用运行安装文件，可以加 --uninstall 删掉本地这份。`);
+  }
+  const wantAihero = !hasAihero() && !args.includes('--no-aihero');
+  if (dryRun) {
+    if (wantAihero) console.log(`[dry-run] 将安装 AIhero 的 skills：${AIHERO_INSTALL}`);
+    return;
+  }
+  const aihero = hasAihero() || (wantAihero && installAihero());
+  const steps = [
+    aihero ? null : `装团队工作流（AIhero 的 skills）：在终端运行 ${AIHERO_INSTALL}（报符号链接相关的错误时，末尾加 --copy 再运行一次）`,
+    '重启 Cursor，或在命令面板运行 Developer: Reload Window。',
+    '在 Cursor 的 Customize 里确认能看到 team-core 规则，以及 kickoff、learn、promote、kit-formats 四个 skill。',
+    '打开一个项目，在对话里输入 /kickoff 开始；不知道下一步用哪个 skill 时输入 /ask-matt。',
+  ].filter(Boolean);
   console.log(
-    [
-      '',
-      '下一步：',
-      hasAihero()
-        ? '1. 团队工作流用 AIhero 的 skills，这台电脑已经装了。'
-        : `1. 团队工作流用 AIhero 的 skills，这台电脑还没装。在终端运行：${AIHERO_INSTALL}（报符号链接相关的错误时，末尾加 --copy 再运行一次）`,
-      '2. 重启 Cursor，或在命令面板运行 Developer: Reload Window。',
-      '3. 在 Cursor 的 Customize 里确认能看到 team-core 规则，以及 kickoff、learn、promote、kit-formats 四个 skill。',
-      '4. 打开一个项目，在对话里输入 /kickoff 开始；不知道下一步用哪个 skill 时输入 /ask-matt。',
-      '以后收到新版本的安装文件，再运行一次就会覆盖升级。',
-    ].join('\n'),
+    ['', '下一步：', ...steps.map((s, i) => `${i + 1}. ${s}`), '以后再运行一次安装命令就会升级；有新版本时，开对话时 agent 会提醒。'].join('\n'),
   );
 }
 

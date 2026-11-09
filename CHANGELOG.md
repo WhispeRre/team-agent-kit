@@ -1,5 +1,15 @@
 # Changelog
 
+## team-kit 0.5.0
+
+2026-11-06
+
+- 团队成员改用团队市场：导入本仓库、`team-kit` 设为 Required 后，成员不用装，跟着 main 自动更新。其他人用一行命令安装或升级（README 里 macOS 和 Windows 各一行），也可以把 README 里的一段话发给 Cursor 的 agent 代装。
+- 新版本提醒（sessionStart hook）：用安装文件装进 `~/.cursor/plugins/local/` 的 kit，每天最多在后台查一次 GitHub Releases 上的最新版本，只请求版本号，不发送会话内容；有新版本时，agent 在第一条回复末尾提醒一次，用户同意就帮他运行升级命令。团队市场装的由 Cursor 自动更新，不查。在 `~/.team-kit/config.json` 里写 `"updateCheck": false` 可以关掉。
+- 没装 AIhero 的提醒改为：用户同意的话，agent 直接帮他运行安装命令。
+- 安装文件会顺手装好 AIhero 的 skills（Windows 上建符号链接失败时自动改用 `--copy` 再试一次），不想装加 `--no-aihero`。这台电脑已经通过团队市场装了 team-kit 时，会提示本地这份不生效。
+- 发布时多附一个固定名字的 `team-kit.cjs`，`releases/latest/download/team-kit.cjs` 总是最新版；只有 team-kit 的发布会标为最新。
+
 ## team-kit 0.4.0
 
 2026-11-02

@@ -20,12 +20,37 @@ flowchart LR
 
 ### 安装
 
-需要 Node 18 以上（终端里输入 `node -v` 查看）。
+**团队成员**（Cursor 登录的是团队账号）：什么都不用装。团队市场里的 `team-kit` 是必装的，重启 Cursor 后自动出现，以后跟着自动更新。第一次开对话时，agent 会提醒还缺什么（比如 AIhero 的 skills），你同意的话它直接帮你装。kit 的 hooks 需要 Node 18 以上；Cursor 设置里 Agents → Third-Party Imports 要保持打开（默认就是开的），关掉的话 hooks 不运行。
 
-- **安装文件（默认）**：在仓库的 [Releases 页](https://github.com/WhispeRre/team-agent-kit/releases/latest)下载最新的 `team-kit-<版本>.cjs`（打不开 GitHub 的话，找负责人直接要文件）。在终端（Windows 用 PowerShell）运行 `node team-kit-<版本>.cjs`，然后重启 Cursor。有新版本时再下载、运行一次就会覆盖升级；卸载时加 `--uninstall`。
-- **团队工作流**：另外装 AIhero 的 skills：`npx skills@latest add mattpocock/skills -g -a cursor -s '*' -y`。以后等负责人通知再运行 `npx skills update -g -y` 更新，让大家用同一个版本。
+**其他人**：需要 Node 18 以上。终端里输入 `node -v` 查看；没有的话，Windows 运行 `winget install OpenJS.NodeJS.LTS`，macOS 去 [nodejs.org](https://nodejs.org) 下载安装包。然后在终端运行一行命令，它会装好 kit 和 AIhero 的 skills。
+
+macOS：
+
+```sh
+curl -fsSL https://github.com/WhispeRre/team-agent-kit/releases/latest/download/team-kit.cjs -o /tmp/team-kit.cjs && node /tmp/team-kit.cjs
+```
+
+Windows（PowerShell）：
+
+```powershell
+curl.exe -fsSL https://github.com/WhispeRre/team-agent-kit/releases/latest/download/team-kit.cjs -o "$env:TEMP\team-kit.cjs"; if ($?) { node "$env:TEMP\team-kit.cjs" }
+```
+
+装完重启 Cursor。再运行一次就是升级；有新版本时，开对话时 agent 会提醒，你同意它就帮你升级。卸载：运行同一个文件加 `--uninstall`，比如 macOS 上 `node /tmp/team-kit.cjs --uninstall`。
+
+不想碰终端的话，把下面这段话发给 Cursor 的 agent：
+
+```text
+帮我安装团队 agent kit：先确认装了 Node 18 以上，再按我的系统在终端运行下面对应的一行命令，装完提醒我重启 Cursor。
+macOS：curl -fsSL https://github.com/WhispeRre/team-agent-kit/releases/latest/download/team-kit.cjs -o /tmp/team-kit.cjs && node /tmp/team-kit.cjs
+Windows：curl.exe -fsSL https://github.com/WhispeRre/team-agent-kit/releases/latest/download/team-kit.cjs -o "$env:TEMP\team-kit.cjs"; if ($?) { node "$env:TEMP\team-kit.cjs" }
+```
+
+打不开 GitHub 的话，找负责人直接要安装文件。
+
+AIhero 的 skills 以后等负责人通知再运行 `npx skills update -g -y` 更新，让大家用同一个版本。
+
 - **维护者**：在本仓库运行 `node scripts/install.cjs`，Cursor 直接从仓库加载，改完重载窗口就生效。
-- **团队市场**（以后用上 Cursor Teams / Enterprise 时）：把本仓库导入为团队市场，`team-kit` 设为 Required，更新自动下发。
 - **其他工具**（Claude Code、Codex 等）：`npx skills add <本仓库地址>`。只有 skills，没有内核和 hooks。
 
 装好后，在 Cursor 的 Customize 里能看到 team-core 规则，kickoff、learn、promote、kit-formats 四个 skill，以及 AIhero 的 ask-matt、code-review 等。
@@ -45,7 +70,7 @@ flowchart LR
 
 ## 维护者
 
-- 发版：先用 `/eval` 跑回归用例，再在推送过的 main 上运行 `node scripts/pack.cjs --release`，安装文件会发布到 Releases 页。给打不开 GitHub 的同学，用 `node scripts/pack.cjs` 生成文件，连同它打印的说明直接发。
+- 发版：先用 `/eval` 跑回归用例。合并到 main 就会通过团队市场下发给团队成员；再在推送过的 main 上运行 `node scripts/pack.cjs --release`，给用安装文件的人发布。给打不开 GitHub 的同学，用 `node scripts/pack.cjs` 生成文件，连同它打印的说明直接发。
 - 收经验：同学发回的导出文件放进 `intake/inbox/<提交人>/`，运行 `node scripts/import-lessons.cjs <文件>`。
 - 每周整理：`/curate`。
 - 收集材料：发[需求问卷](intake/SURVEY.md)，材料配上[投稿卡](intake/TEMPLATE.md)放进 `intake/inbox/`，然后运行 `/intake`。

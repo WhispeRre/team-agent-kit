@@ -13,6 +13,7 @@ const DEFAULT_CONFIG = {
   plugins: ['team-kit'],
   correctionPattern: null,
   allowExpensiveUntil: null,
+  updateCheck: true,
 };
 
 function file(name) {

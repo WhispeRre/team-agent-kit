@@ -29,7 +29,7 @@
 
 完成标准管一次任务，**验收标准**管一个项目：项目的 `CODING_STANDARDS.md` 写这个项目里"什么算好"，开头一节是全团队一样的团队基线，由 `/kickoff` 从 kit 同步。AIhero 的 `/code-review` 会把它当作 Standards 一线，另一线对照需求，两线各开一个子 agent，分开汇报。
 
-为了让每个项目都真的有这一层，`sessionStart` hook 在新对话开始时检查：项目还没有项目层、团队基线过期，或者这台电脑没装 AIhero，就让 agent 在第一条回复末尾提醒一次。每个项目只提醒一次，团队基线变了再提醒一次，记录在 `~/.team-kit/kickoff-reminders.json`；后台 agent 不提醒。
+为了让每个项目都真的有这一层，`sessionStart` hook 在新对话开始时检查：项目还没有项目层、团队基线过期，或者这台电脑没装 AIhero，就让 agent 在第一条回复末尾提醒一次。每个项目只提醒一次，团队基线变了再提醒一次，记录在 `~/.team-kit/kickoff-reminders.json`；后台 agent 不提醒。没装 AIhero 时，用户同意的话 agent 直接帮他装。用安装文件装的 kit，同一个 hook 每天最多在后台查一次 GitHub Releases 上的最新版本，有新版本时提醒一次，用户同意就帮他升级；团队市场装的由 Cursor 自动更新，不查。
 
 ## 3. 两个学习环
 
@@ -83,7 +83,7 @@ flowchart TB
 | 晋升 | 团队级卡脱敏、泛化后提交：有 kit 仓库就开 PR；没有就导出一个文件发给负责人，用 `scripts/import-lessons.cjs` 导入 | `/promote` | `lessons/incoming/` |
 | 整理 | 补证据、过门禁、增量合并进 skill、写回归用例、归档 | `/curate`，建议配成每周的 Cursor Automation | `plugins/team-kit/skills/`、`plugins/team-kit/lessons/`、`evals/cases/` |
 | 验证 | 检查结构、格式、门禁、预算、密钥；回放回归用例 | `scripts/kit-check.cjs`（CI 上也跑）、`/eval` | `evals/results/` |
-| 分发 | 打包成一个安装文件，发布到仓库的 GitHub Releases 页，大家下载后运行一次即安装或升级；以后也可以导入团队市场自动下发 | `scripts/pack.cjs` | 每个人的 `~/.cursor/plugins/local/` |
+| 分发 | 团队成员用团队市场，跟着 main 自动更新；其他人用 GitHub Releases 上的安装文件，一行命令安装或升级，有新版本时开对话提醒 | 团队市场；`scripts/pack.cjs` | 团队市场的插件缓存，或每个人的 `~/.cursor/plugins/local/` |
 
 ### 收料
 
@@ -138,6 +138,7 @@ Cursor 在 `subagentStart` 上只支持放行或拦下，不支持询问，所�
 ## 7. 信任边界
 
 - 原始会话、会话索引和失败日志只留在各人电脑上。hook 写日志前会给疑似密钥打码。
+- 用安装文件装的 kit 每天最多向 GitHub 请求一次最新版本号，不发送会话内容；`~/.team-kit/config.json` 里写 `"updateCheck": false` 可以关掉。团队市场装的不查。
 - 离开本机的只有经过 `/promote` 脱敏、由本人确认的经验卡（[ADR 0006](adr/0006-local-first-privacy.md)）。导入脚本会跳过疑似含密钥的卡。团队仓库是公开的，进了仓库就等于对外公开（[ADR 0008](adr/0008-public-repo.md)）。
 - 成员提交的原始材料放在 `intake/inbox/`，不进 git。
 - kit-check 会扫描整个仓库的疑似密钥，CI 上发现就拦下。
@@ -157,6 +158,7 @@ Cursor 在 `subagentStart` 上只支持放行或拦下，不支持询问，所�
 | 建项目层 | `plugins/team-kit/skills/kickoff/` |
 | 验收标准和团队基线 | `plugins/team-kit/skills/kickoff/templates/CODING_STANDARDS.md`；同步检查在 `plugins/team-kit/lib/standards.cjs` |
 | 开工提醒 | `plugins/team-kit/hooks/kit-hook.cjs` 的 `sessionStart` |
+| 新版本提醒 | `plugins/team-kit/hooks/kit-hook.cjs` 的 `sessionStart`、`plugins/team-kit/scripts/check-update.cjs`；发布渠道在 `plugins/team-kit/lib/release.cjs` |
 | 复盘、分拣、结晶 | `plugins/team-kit/skills/learn/` |
 | 晋升 | `plugins/team-kit/skills/promote/`、`scripts/import-lessons.cjs` |
 | 记录、提醒、守卫 | `plugins/team-kit/hooks/` |
@@ -165,7 +167,7 @@ Cursor 在 `subagentStart` 上只支持放行或拦下，不支持询问，所�
 | 会话统计、项目层检查 | `plugins/team-kit/scripts/` |
 | 整理、收料、回归 | `.cursor/skills/curate/`、`.cursor/skills/intake/`、`.cursor/skills/eval/` |
 | 仓库检查 | `scripts/kit-check.cjs`、`.github/workflows/kit-check.yml` |
-| 分发 | `scripts/pack.cjs`、`scripts/installer-template.cjs`；维护者本机用 `scripts/install.cjs`；团队市场用 `.cursor-plugin/marketplace.json` |
+| 分发 | 团队市场用 `.cursor-plugin/marketplace.json`；安装文件用 `scripts/pack.cjs`、`scripts/installer-template.cjs`；维护者本机用 `scripts/install.cjs` |
 
 ## 10. 已知限制
 
@@ -175,3 +177,4 @@ Cursor 在 `subagentStart` 上只支持放行或拦下，不支持询问，所�
 - hooks 和内核只在 Cursor 里生效，其他工具只能用 skills。
 - AIhero 的 skills 是英文、偏写代码。飞书表、外联、3D 这类任务主要靠内核、验收标准和团队自己的 skill。成员各自更新 AIhero 时，版本可能不一致。
 - 需要 Node 18 以上。
+- 团队市场目前只跟 main，不能指定分支或 tag，合并到 main 就等于发给所有团队成员。

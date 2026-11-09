@@ -28,8 +28,12 @@ _Avoid_：项目 spec
 只给相关的人安装的领域插件，通常带自己的自动评估器。
 
 **安装文件**：
-`scripts/pack.cjs` 生成的单个 .cjs 文件，同学运行它来安装或升级 kit 插件。
+`scripts/pack.cjs` 生成的单个 .cjs 文件，团队之外的人运行它来安装或升级 kit 插件。
 _Avoid_：安装包、压缩包
+
+**团队市场**：
+Cursor Teams / Enterprise 里团队自己的插件来源。本仓库导入后，团队成员自动装上 kit 插件，跟着主分支更新。
+_Avoid_：插件商店、官方市场
 
 ## 文档
 

@@ -2,8 +2,10 @@
 
 // 团队 kit 的 hook 入口，事件名由 hooks.json 作为命令行参数传入。
 // 任何异常都放行：kit 的 bug 不能卡住正常工作。
+const { spawn } = require('child_process');
 const crypto = require('crypto');
 const fs = require('fs');
+const os = require('os');
 const path = require('path');
 const home = require('../lib/home.cjs');
 const { redact } = require('../lib/secrets.cjs');
@@ -11,6 +13,7 @@ const { loadCards, isActive, matchesPlatform, matchesModel, triggerRegex } = req
 const { loadPolicy, expensiveMatch, expensiveAllowedUntil } = require('../lib/policy.cjs');
 const { TEMPLATE, baselineOf, baselineStatus } = require('../lib/standards.cjs');
 const { AIHERO_INSTALL, findAihero } = require('../lib/aihero.cjs');
+const { installCommand } = require('../lib/release.cjs');
 
 const PLUGIN_ROOT = path.resolve(__dirname, '..');
 const EVENTS = ['sessionStart', 'stop', 'postToolUseFailure', 'beforeShellExecution', 'subagentStart'];
@@ -29,6 +32,8 @@ const KICKOFF_HINTS = {
   outdated: '团队基线更新了，这个项目 CODING_STANDARDS.md 里的还是旧版：建议运行 /kickoff 刷新。',
 };
 const NO_PROJECT_LAYER = '这个项目还没有团队的项目层：建议运行 /kickoff，建立 AGENTS.md 和验收标准 CODING_STANDARDS.md。';
+const UPDATE_FILE = 'update-check.json';
+const UPDATE_INTERVAL_MS = 24 * 60 * 60 * 1000;
 
 function readStdin() {
   return new Promise((resolve) => {
@@ -114,18 +119,16 @@ function countCorrections(transcriptPath, pattern) {
   return count;
 }
 
-// 每个项目只提醒一次，团队基线变了再提醒一次。后台 agent 身边没人，不占用这次提醒。
-function onSessionStart(input) {
-  const dir = roots(input)[0];
-  if (!dir || input.is_background_agent) return {};
+// 每个项目只提醒一次，团队基线变了再提醒一次。
+function kickoffHints(dir) {
   const status = baselineStatus(dir);
   const aihero = Boolean(findAihero(dir));
-  if (status === 'ok' && aihero) return {};
+  if (status === 'ok' && aihero) return [];
 
   const baseline = crypto.createHash('sha1').update(baselineOf(fs.readFileSync(TEMPLATE, 'utf8')) || '').digest('hex').slice(0, 12);
   const key = process.platform === 'win32' ? path.resolve(dir).toLowerCase() : path.resolve(dir);
   const reminded = home.readJson('kickoff-reminders.json', {});
-  if (reminded[key] && reminded[key].baseline === baseline) return {};
+  if (reminded[key] && reminded[key].baseline === baseline) return [];
   reminded[key] = { baseline, ts: new Date().toISOString() };
   const recent = Object.entries(reminded)
     .sort((a, b) => String(a[1] && a[1].ts).localeCompare(String(b[1] && b[1].ts)))
@@ -136,7 +139,48 @@ function onSessionStart(input) {
   const hasAgents = ['AGENTS.md', 'CLAUDE.md'].some((f) => fs.existsSync(path.join(dir, f)));
   if (status === 'missing-file' && !hasAgents) lines.push(NO_PROJECT_LAYER);
   else if (status !== 'ok') lines.push(KICKOFF_HINTS[status]);
-  if (!aihero) lines.push(`这台电脑还没装团队工作流（AIhero 的 skills）：建议在终端运行 ${AIHERO_INSTALL}`);
+  if (!aihero) {
+    const copy = process.platform === 'win32' ? '（报符号链接相关的错误时，末尾加 --copy 再运行一次）' : '';
+    lines.push(`这台电脑还没装团队工作流（AIhero 的 skills）。用户同意的话，可以帮他在终端运行：${AIHERO_INSTALL}${copy}`);
+  }
+  return lines;
+}
+
+// 团队市场装的插件由 Cursor 自动更新；只有用安装文件装进 plugins/local 的才查新版本。
+function isLocalInstall() {
+  const rel = path.relative(path.join(os.homedir(), '.cursor', 'plugins', 'local'), PLUGIN_ROOT);
+  return Boolean(rel) && !rel.startsWith('..') && !path.isAbsolute(rel);
+}
+
+function newer(a, b) {
+  const pa = String(a).split('.').map(Number);
+  const pb = String(b).split('.').map(Number);
+  for (let i = 0; i < 3; i += 1) if ((pa[i] || 0) !== (pb[i] || 0)) return (pa[i] || 0) > (pb[i] || 0);
+  return false;
+}
+
+// 查询在后台进行，结果留给下一次开对话；每个新版本只提醒一次。
+function updateHint(config) {
+  if (config.updateCheck === false || !isLocalInstall()) return null;
+  const state = home.readJson(UPDATE_FILE, {});
+  if (!(Date.now() - Date.parse(state.startedAt || '') < UPDATE_INTERVAL_MS)) {
+    home.writeJson(UPDATE_FILE, { ...state, startedAt: new Date().toISOString() });
+    const child = spawn(process.execPath, [path.join(PLUGIN_ROOT, 'scripts', 'check-update.cjs')], { detached: true, stdio: 'ignore', windowsHide: true });
+    child.on('error', () => {});
+    child.unref();
+  }
+  const { version } = JSON.parse(fs.readFileSync(path.join(PLUGIN_ROOT, '.cursor-plugin', 'plugin.json'), 'utf8'));
+  if (!state.latest || !newer(state.latest, version) || state.remindedFor === state.latest) return null;
+  home.writeJson(UPDATE_FILE, { ...home.readJson(UPDATE_FILE, {}), remindedFor: state.latest });
+  return `团队 kit 有新版本 ${state.latest}（这台电脑装的是 ${version}）。用户同意的话，可以帮他在终端运行：${installCommand()}，装完重启 Cursor。`;
+}
+
+// 后台 agent 身边没人，不占用提醒。
+function onSessionStart(input, config) {
+  if (input.is_background_agent) return {};
+  const dir = roots(input)[0];
+  const lines = [...(dir ? kickoffHints(dir) : []), updateHint(config)].filter(Boolean);
+  if (!lines.length) return {};
   return {
     additional_context: `团队 kit 的一次性提示：先照常处理用户的请求，在你的第一条回复末尾用一两句话转告用户：\n${lines.map((l) => `- ${l}`).join('\n')}`,
   };
